@@ -1,0 +1,80 @@
+:root {
+  --bg: #0b0d10;
+  --panel: #0f1116;
+  --panel-2: #141823;
+  --text: #e6e9ef;
+  --muted: #9aa4b2;
+  --accent: #7aa2ff;
+  --accent-2: #6ee7f3;
+  --ring: 0 0 0 4px rgba(122, 162, 255, 0.3);
+
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  line-height: 1.5;
+  font-weight: 400;
+  color-scheme: dark;
+  color: var(--text);
+  background-color: var(--bg);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  font-weight: 500;
+  color: #646cff;
+  text-decoration: inherit;
+}
+a:hover {
+  color: #535bf2;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background: radial-gradient(1200px 600px at 20% -10%, rgba(110, 231, 243, 0.08), transparent 60%),
+    radial-gradient(1200px 600px at 100% 10%, rgba(122, 162, 255, 0.10), transparent 60%),
+    var(--bg);
+}
+
+h1 {
+  font-size: 3.2em;
+  line-height: 1.1;
+}
+
+button {
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 0.7em 1.1em;
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  font-family: inherit;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.03));
+  color: var(--text);
+  cursor: pointer;
+  transition: transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
+}
+button:hover {
+  border-color: rgba(122, 162, 255, 0.6);
+  box-shadow: 0 0 0 1px rgba(122, 162, 255, 0.4), 0 20px 40px -20px rgba(0, 0, 0, 0.5);
+}
+button:focus,
+button:focus-visible {
+  outline: none;
+  box-shadow: var(--ring);
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    color: #213547;
+    background-color: #ffffff;
+  }
+  a:hover {
+    color: #747bff;
+  }
+  button {
+    background-color: #f9f9f9;
+  }
+}
