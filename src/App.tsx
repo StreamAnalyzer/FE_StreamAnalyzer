@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react'
-import { BrowserRouter as Router, Routes, Route, useParams, useNavigate } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, useParams, useNavigate, useLocation } from 'react-router-dom'
 import { v4 as uuidv4 } from 'uuid'
 import './App.css'
 
@@ -19,7 +19,7 @@ interface YoutubeSearchRequest {
 const convertYoutubeLinks = (text: string): string => {
   const youtubeRegex = /(https?:\/\/)?(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/g
   
-  return text.replace(youtubeRegex, (match, protocol, www, path, videoId) => {
+  return text.replace(youtubeRegex, (match) => {
     const fullUrl = match.startsWith('http') ? match : `https://${match}`
     return `<a href="${fullUrl}" target="_blank" rel="noopener noreferrer" class="youtube-link">${match}</a>`
   })
@@ -28,11 +28,20 @@ const convertYoutubeLinks = (text: string): string => {
 // 홈페이지 컴포넌트 (메인 페이지)
 function HomePage() {
   const navigate = useNavigate()
+  const [inputText, setInputText] = useState('')
 
-  const handleStartChat = () => {
-    // 새 UUID 생성 후 채팅 페이지로 이동
+  const handleStartQuestion = () => {
+    const text = inputText.trim()
+    if (!text) return
     const conversationId = uuidv4()
-    navigate(`/chat/${conversationId}`)
+    navigate(`/chat/${conversationId}`, { state: { initialQuery: text } })
+  }
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      handleStartQuestion()
+    }
   }
 
   return (
@@ -49,10 +58,35 @@ function HomePage() {
           <div className="welcome-description">
             StreamAnalyzer가 풍월량의 다양한 영상들을 빠르게 검색하고 추천해드립니다.
           </div>
-          <button className="start-chat-btn" onClick={handleStartChat}>
-            채팅 시작하기
-          </button>
         </div>
+      </div>
+      <div className="input-section">
+        <div className="input-container">
+          <button className="attachment-btn" type="button">📎</button>
+          <input
+            type="text"
+            value={inputText}
+            onChange={(e) => setInputText(e.target.value)}
+            onKeyPress={handleKeyPress}
+            placeholder="풍월량 영상에 대해 무엇을 알고 싶으세요?"
+            className="message-input"
+          />
+          <div className="input-controls">
+            <span className="auto-text">자동</span>
+            <button className="voice-btn" type="button">🎤</button>
+            <button 
+              className="send-btn" 
+              onClick={handleStartQuestion}
+              disabled={!inputText.trim()}
+              type="button"
+            >
+              ✈️
+            </button>
+          </div>
+        </div>
+      </div>
+      <div className="footer">
+        <p>StreamAnalyzer에게 메시지를 보냄으로써, 우리의 약관과 개인정보 보호정책에 동의합니다.</p>
       </div>
     </div>
   )
@@ -62,6 +96,7 @@ function HomePage() {
 function ChatPage() {
   const { conversationId } = useParams<{ conversationId: string }>()
   const navigate = useNavigate()
+  const location = useLocation() as { state?: { initialQuery?: string } }
   const [messages, setMessages] = useState<Message[]>([])
   const [inputText, setInputText] = useState('')
   const [isTyping, setIsTyping] = useState(false)
@@ -71,18 +106,19 @@ function ChatPage() {
     navigate('/')
   }
 
-  const handleSendMessage = async () => {
-    if (!inputText.trim() || !conversationId) return
+  const handleSendMessage = async (overrideText?: string) => {
+    const text = (overrideText ?? inputText).trim()
+    if (!text || !conversationId) return
 
     const userMessage: Message = {
       id: Date.now(),
-      text: inputText,
+      text: text,
       isUser: true,
       timestamp: new Date()
     }
 
     setMessages(prev => [...prev, userMessage])
-    const query = inputText
+    const query = text
     setInputText('')
     setIsTyping(true)
     setIsStreaming(true)
@@ -216,6 +252,17 @@ function ChatPage() {
     }
   }
 
+  useEffect(() => {
+    const initialQuery = location.state?.initialQuery
+    if (initialQuery) {
+      navigate(window.location.pathname, { replace: true })
+      // 초기 질문 전송
+      handleSendMessage(initialQuery)
+    }
+    // 의도적으로 최초 마운트에서만 동작
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   return (
     <div className="chatbot-container">
       {/* 로고 영역 */}
@@ -290,7 +337,7 @@ function ChatPage() {
             </button>
             <button 
               className="send-btn" 
-              onClick={handleSendMessage}
+              onClick={() => handleSendMessage()}
               disabled={!inputText.trim() || isStreaming}
               type="button"
             >
