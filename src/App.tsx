@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { BrowserRouter as Router, Routes, Route, useParams, useNavigate, useLocation } from 'react-router-dom'
 import { v4 as uuidv4 } from 'uuid'
 import './App.css'
@@ -101,6 +101,7 @@ function ChatPage() {
   const [inputText, setInputText] = useState('')
   const [isTyping, setIsTyping] = useState(false)
   const [isStreaming, setIsStreaming] = useState(false)
+  const didInitRef = useRef(false)
 
   const handleLogoClick = () => {
     navigate('/')
@@ -253,13 +254,14 @@ function ChatPage() {
   }
 
   useEffect(() => {
+    if (didInitRef.current) return
+    didInitRef.current = true
     const initialQuery = location.state?.initialQuery
     if (initialQuery) {
       navigate(window.location.pathname, { replace: true })
-      // 초기 질문 전송
+      // 초기 질문 전송 (StrictMode에서도 단 한 번만)
       handleSendMessage(initialQuery)
     }
-    // 의도적으로 최초 마운트에서만 동작
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
