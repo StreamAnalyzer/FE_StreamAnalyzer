@@ -15,6 +15,14 @@ interface YoutubeSearchRequest {
   userQuery: string
 }
 
+interface YoutubeEmbedRequest {
+  youtubeLink: string
+}
+
+interface ExceptionResponse {
+  message: string
+}
+
 // 유튜브 링크를 감지하고 클릭 가능한 링크로 변환하는 함수
 const convertYoutubeLinks = (text: string): string => {
   const youtubeRegex = /(https?:\/\/)?(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/g
@@ -51,6 +59,13 @@ function HomePage() {
           <div className="logo-icon">S</div>
           <span className="logo-text">StreamAnalyzer</span>
         </div>
+        <button
+          className="nav-embed-btn"
+          type="button"
+          onClick={() => navigate('/embedding')}
+        >
+          🎬 영상 벡터화
+        </button>
       </div>
       <div className="messages-container">
         <div className="welcome-section">
@@ -357,12 +372,143 @@ function ChatPage() {
   )
 }
 
+// 벡터화(임베딩) 요청 페이지
+type EmbedStatus =
+  | { type: 'idle' }
+  | { type: 'loading' }
+  | { type: 'success'; message: string }
+  | { type: 'error'; message: string }
+
+function EmbeddingPage() {
+  const navigate = useNavigate()
+  const [youtubeLink, setYoutubeLink] = useState('')
+  const [status, setStatus] = useState<EmbedStatus>({ type: 'idle' })
+
+  const handleLogoClick = () => {
+    navigate('/')
+  }
+
+  const handleSubmit = async () => {
+    const link = youtubeLink.trim()
+    if (!link || status.type === 'loading') return
+
+    setStatus({ type: 'loading' })
+
+    try {
+      const response = await fetch('https://api.streamanalyzer.store/api/youtube/embedding', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          youtubeLink: link,
+        } as YoutubeEmbedRequest),
+      })
+
+      if (!response.ok) {
+        let message = '벡터화 요청에 실패했습니다. 다시 시도해주세요.'
+        try {
+          const data = (await response.json()) as ExceptionResponse
+          if (data?.message) message = data.message
+        } catch {
+          // 에러 바디가 없거나 JSON이 아닌 경우 기본 메시지 사용
+        }
+        setStatus({ type: 'error', message })
+        return
+      }
+
+      setStatus({
+        type: 'success',
+        message: '벡터화 요청이 접수되었습니다. 처리가 완료되면 검색에 반영됩니다.',
+      })
+      setYoutubeLink('')
+    } catch (error) {
+      console.error('벡터화 요청 오류:', error)
+      setStatus({
+        type: 'error',
+        message: '네트워크 오류가 발생했습니다. 다시 시도해주세요.',
+      })
+    }
+  }
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      handleSubmit()
+    }
+  }
+
+  const isLoading = status.type === 'loading'
+
+  return (
+    <div className="embed-page">
+      {/* 상단 바 */}
+      <header className="embed-topbar">
+        <div className="logo" onClick={handleLogoClick} style={{ cursor: 'pointer' }}>
+          <div className="logo-icon">S</div>
+          <span className="logo-text">StreamAnalyzer</span>
+        </div>
+        <button className="embed-back-btn" type="button" onClick={handleLogoClick}>
+          ← 검색으로 돌아가기
+        </button>
+      </header>
+
+      {/* 중앙 카드 */}
+      <main className="embed-main">
+        <div className="embed-card">
+          <div className="embed-card-badge">VECTORIZE</div>
+          <div className="embed-card-icon">🎬</div>
+          <h1 className="embed-card-title">유튜브 영상 벡터화</h1>
+          <p className="embed-card-subtitle">
+            영상 링크를 등록하면 임베딩을 생성해 검색·추천에 활용할 수 있도록 처리합니다.
+          </p>
+
+          <label className="embed-field-label" htmlFor="youtube-link">
+            유튜브 링크
+          </label>
+          <input
+            id="youtube-link"
+            type="text"
+            value={youtubeLink}
+            onChange={(e) => setYoutubeLink(e.target.value)}
+            onKeyPress={handleKeyPress}
+            placeholder="https://www.youtube.com/watch?v=..."
+            className="embed-input"
+            disabled={isLoading}
+          />
+
+          {status.type === 'success' && (
+            <div className="embed-status embed-status-success">✅ {status.message}</div>
+          )}
+          {status.type === 'error' && (
+            <div className="embed-status embed-status-error">⚠️ {status.message}</div>
+          )}
+
+          <button
+            className="embed-submit-btn"
+            onClick={handleSubmit}
+            disabled={!youtubeLink.trim() || isLoading}
+            type="button"
+          >
+            {isLoading ? '요청 처리 중…' : '벡터화 요청하기'}
+          </button>
+
+          <p className="embed-card-hint">
+            등록된 영상은 처리가 완료되면 자동으로 검색 결과에 반영됩니다.
+          </p>
+        </div>
+      </main>
+    </div>
+  )
+}
+
 function App() {
   return (
     <Router>
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/chat/:conversationId" element={<ChatPage />} />
+        <Route path="/embedding" element={<EmbeddingPage />} />
       </Routes>
     </Router>
   )
